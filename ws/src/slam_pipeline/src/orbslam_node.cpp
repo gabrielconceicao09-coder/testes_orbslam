@@ -91,9 +91,9 @@ private:
             "Tracking state: %d", state
         );
 
-        if (Tcw.empty() || state != 2)
+        if (state != ORB_SLAM3::Tracking::OK)
         {
-            return; // ainda não está OK
+            return;
         }
 
         publishPose(Tcw, msg->header.stamp);
