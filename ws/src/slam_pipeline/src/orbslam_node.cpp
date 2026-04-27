@@ -61,7 +61,7 @@ private:
 
 void publishMap()
 {
-    auto mapPoints = slam_->GetMap()->GetAllMapPoints();
+    auto mapPoints = this->slam_->GetMap()->GetAllMapPoints();
 
     sensor_msgs::msg::PointCloud2 cloud_msg;
     cloud_msg.header.frame_id = "map";
