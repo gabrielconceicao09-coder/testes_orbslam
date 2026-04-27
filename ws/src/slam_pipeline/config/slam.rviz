@@ -1,0 +1,17 @@
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Image
+      Name: Camera
+      Topic: /image_raw
+      Transport Hint: raw
+
+    - Class: rviz_default_plugins/TF
+      Name: TF
+
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Map
+      Topic: /map_points
+
+  Global Options:
+    Fixed Frame: map
