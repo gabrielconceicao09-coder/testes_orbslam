@@ -17,3 +17,6 @@ export XDG_RUNTIME_DIR=/tmp/runtime-root
 
 #e antes de dar launch:
 export LD_LIBRARY_PATH=/opt/ORB_SLAM3/lib:$LD_LIBRARY_PATH
+
+#e num outro terminal enquanto slam roda:
+ros2 run tf2_ros static_transform_publisher 0 0 0 0 0 0 map camera_link
