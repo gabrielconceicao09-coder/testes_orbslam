@@ -5,6 +5,7 @@ Visualization Manager:
       Name: Camera
       Topic: /image_raw
       Transport Hint: raw
+      Reliability Policy: Best Effort
 
     - Class: rviz_default_plugins/TF
       Name: TF
