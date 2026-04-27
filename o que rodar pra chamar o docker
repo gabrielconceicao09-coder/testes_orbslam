@@ -14,3 +14,6 @@ docker run -it --rm \
 mkdir -p /tmp/runtime-root
 chmod 700 /tmp/runtime-root
 export XDG_RUNTIME_DIR=/tmp/runtime-root
+
+#e antes de dar launch:
+export LD_LIBRARY_PATH=/opt/ORB_SLAM3/lib:$LD_LIBRARY_PATH
