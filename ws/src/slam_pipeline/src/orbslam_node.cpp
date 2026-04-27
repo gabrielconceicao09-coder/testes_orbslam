@@ -1,39 +1,28 @@
 #include <memory>
-#include <thread>
-
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "cv_bridge/cv_bridge.h"
 #include "opencv2/opencv.hpp"
-#include <sensor_msgs/msg/point_cloud2.hpp>
-#include <sensor_msgs/point_cloud2_iterator.hpp>
 
-// ORB-SLAM3
 #include "System.h"
 
 class OrbSlamNode : public rclcpp::Node
 {
 public:
-    OrbSlamNode()
-    : Node("orbslam_node")
+    OrbSlamNode() : Node("orbslam_node")
     {
-        RCLCPP_INFO(this->get_logger(), "ORB-SLAM3 ROS2 node started");
+        RCLCPP_INFO(get_logger(), "ORB-SLAM3 node started");
 
-        // tópico da câmera
-        sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-            "/image_raw",
-            10,
+        image_sub_ = create_subscription<sensor_msgs::msg::Image>(
+            "/image_raw", 10,
             std::bind(&OrbSlamNode::imageCallback, this, std::placeholders::_1)
         );
 
-        map_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-    "/orbslam/map_points", 10);
+        pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>(
+            "/orbslam/pose", 10
+        );
 
-        timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(200),
-            std::bind(&OrbSlamNode::publishMap, this));
-                
-        // inicializa ORB-SLAM3 (ajuste paths depois)
         slam_ = std::make_shared<ORB_SLAM3::System>(
             "/opt/ORB_SLAM3/Vocabulary/ORBvoc.txt",
             "/opt/ORB_SLAM3/Examples/Monocular/EuRoC.yaml",
@@ -46,68 +35,43 @@ private:
 
     void imageCallback(const sensor_msgs::msg::Image::SharedPtr msg)
     {
-        try {
-            cv::Mat img = cv_bridge::toCvCopy(msg, "bgr8")->image;
+        cv::Mat img = cv_bridge::toCvCopy(msg, "bgr8")->image;
 
-            double tframe = msg->header.stamp.sec +
-                            msg->header.stamp.nanosec * 1e-9;
+        double t = msg->header.stamp.sec +
+                    msg->header.stamp.nanosec * 1e-9;
 
-            slam_->TrackMonocular(img, tframe);
+        // ORB-SLAM3 tracking
+        Sophus::SE3f Tcw = slam_->TrackMonocular(img, t);
 
-        } catch (std::exception &e) {
-            RCLCPP_ERROR(this->get_logger(), "CV error: %s", e.what());
-        }
+        publishPose(Tcw, msg->header.stamp);
     }
 
-void publishMap()
-{
-    auto mapPoints = this->slam_->GetMap()->GetAllMapPoints();
-
-    sensor_msgs::msg::PointCloud2 cloud_msg;
-    cloud_msg.header.frame_id = "map";
-    cloud_msg.header.stamp = this->now();
-
-    cloud_msg.height = 1;
-    cloud_msg.width = mapPoints.size();
-    cloud_msg.is_dense = false;
-
-    sensor_msgs::PointCloud2Modifier modifier(cloud_msg);
-    modifier.setPointCloud2Fields(
-        3,
-        "x", 1, sensor_msgs::msg::PointField::FLOAT32,
-        "y", 1, sensor_msgs::msg::PointField::FLOAT32,
-        "z", 1, sensor_msgs::msg::PointField::FLOAT32
-    );
-
-    sensor_msgs::PointCloud2Iterator<float> iter_x(cloud_msg, "x");
-    sensor_msgs::PointCloud2Iterator<float> iter_y(cloud_msg, "y");
-    sensor_msgs::PointCloud2Iterator<float> iter_z(cloud_msg, "z");
-
-    for (auto& p : mapPoints)
+    void publishPose(const Sophus::SE3f &Tcw, builtin_interfaces::msg::Time stamp)
     {
-        if (!p) continue;
+        auto Twc = Tcw.inverse();
 
-        cv::Mat pos = p->GetWorldPos();
+        geometry_msgs::msg::PoseStamped pose;
+        pose.header.stamp = stamp;
+        pose.header.frame_id = "map";
 
-        *iter_x = pos.at<float>(0);
-        *iter_y = pos.at<float>(1);
-        *iter_z = pos.at<float>(2);
+        pose.pose.position.x = Twc.translation().x();
+        pose.pose.position.y = Twc.translation().y();
+        pose.pose.position.z = Twc.translation().z();
 
-        ++iter_x;
-        ++iter_y;
-        ++iter_z;
+        auto q = Twc.unit_quaternion();
+        pose.pose.orientation.x = q.x();
+        pose.pose.orientation.y = q.y();
+        pose.pose.orientation.z = q.z();
+        pose.pose.orientation.w = q.w();
+
+        pose_pub_->publish(pose);
     }
 
-    map_pub_->publish(cloud_msg);
-}
-
-    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr sub_;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr map_pub_;
-    rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
     std::shared_ptr<ORB_SLAM3::System> slam_;
 };
 
-// MAIN OBRIGATÓRIO (erro que você teve antes)
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
