@@ -69,5 +69,6 @@ RUN apt-get update && apt-get install nano
 # =========================
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
     echo "source /ws/install/setup.bash" >> ~/.bashrc
+RUN echo "/opt/ORB_SLAM3/lib" > /etc/ld.so.conf.d/orbslam3.conf && ldconfig
 
 CMD ["/bin/bash"]
