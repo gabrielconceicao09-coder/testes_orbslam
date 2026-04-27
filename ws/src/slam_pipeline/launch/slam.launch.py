@@ -22,7 +22,8 @@ def generate_launch_description():
         parameters=[{
             'pixel_format': 'RGB24',
             'image_size': [640, 480],
-            'camera_frame_id': 'camera'
+            'camera_frame_id': 'camera',
+            'use_sensor_data_qos': True
         }],
         remappings=[
             ('image_raw', '/image_raw')
