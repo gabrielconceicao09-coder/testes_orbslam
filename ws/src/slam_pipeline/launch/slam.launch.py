@@ -46,6 +46,11 @@ def generate_launch_description():
         output='screen',
         arguments=['-d', rviz_config]
     )
+    static_transform_publisher = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        arguments=['0', '0', '0', '0', '0', '0', 'map', 'camera_link']
+    )
 
     return LaunchDescription([
         camera_node,
