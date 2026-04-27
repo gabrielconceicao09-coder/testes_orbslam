@@ -1,0 +1,16 @@
+docker run -it --rm \
+  --net=host \
+  --ipc=host \
+  --privileged \
+  --device=/dev/video0 \
+  -e DISPLAY=$DISPLAY \
+  -e XDG_RUNTIME_DIR=/tmp/runtime-root \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  -v /tmp/runtime-root:/tmp/runtime-root \
+  orbslam3_ros2
+
+#dentro do docker, rodar:
+
+mkdir -p /tmp/runtime-root
+chmod 700 /tmp/runtime-root
+export XDG_RUNTIME_DIR=/tmp/runtime-root
